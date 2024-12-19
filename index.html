@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forbidden Sequence</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        #output {
+            margin-top: 20px;
+        }
+    </style>
+    <script type="text/javascript" src="https://b82b17633d1c3.eu-west-3.captcha-sdk.awswaf.com/b82b17633d1c3/jsapi.js" defer></script>
+</head>
+<body>
+    <h1>Generate Forbidden Sequence</h1>
+    <form id="inputForm">
+        <label for="numberInput">Enter a number (1-1000):</label>
+        <input type="number" id="numberInput" min="1" max="1000" required>
+        <button type="submit">Submit</button>
+    </form>
+
+    <div id="output"></div>
+
+    <script>
+        const form = document.getElementById('inputForm');
+        const outputDiv = document.getElementById('output');
+
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const numberInput = document.getElementById('numberInput');
+            const N = parseInt(numberInput.value);
+
+            if (isNaN(N) || N < 1 || N > 1000) {
+                alert('Please enter a valid number between 1 and 1000.');
+                return;
+            }
+
+            // Clear the output and hide the form
+            outputDiv.innerHTML = '';
+            form.style.display = 'none';
+
+            for (let i = 1; i <= N; i++) {
+                try {
+                    const response = await fetch('https://api.prod.jcloudify.com/whoami', {
+                        method: 'GET'
+                    });
+
+                    if (response.ok) {
+                        appendLine(`${i}. Forbidden`);
+                    } else if (response.status === 403) {
+                        await handleCaptcha();
+                        i--; // Retry after handling captcha
+                    } else {
+                        appendLine(`${i}. Error: ${response.status}`);
+                    }
+                } catch (error) {
+                    appendLine(`${i}. Network Error`);
+                }
+
+                await sleep(1000); // Wait 1 second before next request
+            }
+
+            function appendLine(text) {
+                const line = document.createElement('div');
+                line.textContent = text;
+                outputDiv.appendChild(line);
+            }
+
+            function sleep(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+
+            async function handleCaptcha() {
+                alert('Captcha encountered! Please solve it to continue.');
+
+                // Assuming the user solves the captcha via AWS interface.
+                // In practice, the user interaction would be managed by the captcha system itself.
+                await new Promise(resolve => {
+                    const interval = setInterval(async () => {
+                        try {
+                            const response = await fetch('https://api.prod.jcloudify.com/whoami', {
+                                method: 'GET'
+                            });
+
+                            if (response.ok) {
+                                clearInterval(interval);
+                                resolve();
+                            }
+                        } catch {
+                            // Retry until the captcha is solved
+                        }
+                    }, 1000);
+                });
+            }
+        });
+    </script>
+</body>
+</html>
